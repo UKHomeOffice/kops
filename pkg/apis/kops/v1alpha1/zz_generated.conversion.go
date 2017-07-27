@@ -1235,6 +1235,9 @@ func Convert_kops_HTTPProxy_To_v1alpha1_HTTPProxy(in *kops.HTTPProxy, out *HTTPP
 }
 
 func autoConvert_v1alpha1_HookSpec_To_kops_HookSpec(in *HookSpec, out *kops.HookSpec, s conversion.Scope) error {
+	out.Documentation = in.Documentation
+	out.Requires = in.Requires
+	out.Before = in.Before
 	if in.ExecContainer != nil {
 		in, out := &in.ExecContainer, &out.ExecContainer
 		*out = new(kops.ExecContainerAction)
@@ -1253,6 +1256,9 @@ func Convert_v1alpha1_HookSpec_To_kops_HookSpec(in *HookSpec, out *kops.HookSpec
 }
 
 func autoConvert_kops_HookSpec_To_v1alpha1_HookSpec(in *kops.HookSpec, out *HookSpec, s conversion.Scope) error {
+	out.Documentation = in.Documentation
+	out.Requires = in.Requires
+	out.Before = in.Before
 	if in.ExecContainer != nil {
 		in, out := &in.ExecContainer, &out.ExecContainer
 		*out = new(ExecContainerAction)
