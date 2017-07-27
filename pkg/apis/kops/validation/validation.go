@@ -173,9 +173,14 @@ func validateHookSpec(v *kops.HookSpec, fldPath *field.Path) field.ErrorList {
 		allErrs = append(allErrs, field.Required(fldPath, "An action is required"))
 	}
 
-	if v.ExecContainer != nil {
-		allErrs = append(allErrs, validateExecContainerAction(v.ExecContainer, fldPath.Child("ExecContainer"))...)
+	if !v.Disabled && v.ExecContainer == nil && v.Manifest == "" {
+		allErrs = append(allErrs, field.Required(fieldPath, "you must set either manifest or execContainer for a hook"))
 	}
+
+	if !v.Disabled && v.ExecContainer != nil {
+		allErrs = append(allErrs, validateExecContainerAction(v.ExecContainer, fieldPath.Child("ExecContainer"))...)
+	}
+
 	return allErrs
 }
 
