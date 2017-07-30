@@ -39,12 +39,14 @@ import (
 	"k8s.io/kops/upup/pkg/fi/nodeup/nodetasks"
 	"k8s.io/kops/upup/pkg/fi/utils"
 	"k8s.io/kops/util/pkg/vfs"
+
+	"github.com/golang/glog"
 )
 
 // We should probably retry for a long time - there is not really any great fallback
 const MaxTaskDuration = 365 * 24 * time.Hour
 
-// NodeUpCommand the configiruation for nodeup
+// NodeUpCommand defines the nodeup command configuration
 type NodeUpCommand struct {
 	CacheDir       string
 	ConfigLocation string
@@ -52,11 +54,11 @@ type NodeUpCommand struct {
 	ModelDir       vfs.Path
 	Target         string
 	cluster        *api.Cluster
-	config         *nodeup.NodeUpConfig
+	config         *nodeup.Config
 	instanceGroup  *api.InstanceGroup
 }
 
-// Run is responsible for perform the nodeup process
+// Run implements the nodeup process
 func (c *NodeUpCommand) Run(out io.Writer) error {
 	if c.FSRoot == "" {
 		return fmt.Errorf("FSRoot is required")
@@ -145,8 +147,7 @@ func (c *NodeUpCommand) Run(out io.Writer) error {
 			return fmt.Errorf("error loading InstanceGroup %q: %v", instanceGroupLocation, err)
 		}
 
-		err = utils.YamlUnmarshal(b, c.instanceGroup)
-		if err != nil {
+		if err = utils.YamlUnmarshal(b, c.instanceGroup); err != nil {
 			return fmt.Errorf("error parsing InstanceGroup %q: %v", instanceGroupLocation, err)
 		}
 	} else {
@@ -201,6 +202,7 @@ func (c *NodeUpCommand) Run(out io.Writer) error {
 	loader.Builders = append(loader.Builders, &model.ProtokubeBuilder{NodeupModelContext: modelContext})
 	loader.Builders = append(loader.Builders, &model.CloudConfigBuilder{NodeupModelContext: modelContext})
 	loader.Builders = append(loader.Builders, &model.FileAssetsBuilder{NodeupModelContext: modelContext})
+	loader.Builders = append(loader.Builders, &model.HookBuilder{NodeupModelContext: modelContext})
 	loader.Builders = append(loader.Builders, &model.KubeletBuilder{NodeupModelContext: modelContext})
 	loader.Builders = append(loader.Builders, &model.KubectlBuilder{NodeupModelContext: modelContext})
 	loader.Builders = append(loader.Builders, &model.EtcdBuilder{NodeupModelContext: modelContext})
@@ -218,7 +220,6 @@ func (c *NodeUpCommand) Run(out io.Writer) error {
 	} else {
 		loader.Builders = append(loader.Builders, &model.KubeRouterBuilder{NodeupModelContext: modelContext})
 	}
-	loader.Builders = append(loader.Builders, &model.HookBuilder{NodeupModelContext: modelContext})
 
 	tf.populate(loader.TemplateFunctions)
 
@@ -356,8 +357,7 @@ func evaluateDockerSpecStorage(spec *api.DockerConfig) error {
 				// overlay -> overlay
 				// aufs -> aufs
 				module := fs
-				err := modprobe(fs)
-				if err != nil {
+				if err = modprobe(fs); err != nil {
 					glog.Warningf("error running `modprobe %q`: %v", module, err)
 				}
 			}
