@@ -18,8 +18,7 @@ package model
 
 import (
 	"fmt"
-	"github.com/blang/semver"
-	"github.com/golang/glog"
+
 	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/kops/nodeup/pkg/distros"
 	"k8s.io/kops/pkg/apis/kops"
@@ -29,6 +28,9 @@ import (
 	"k8s.io/kops/upup/pkg/fi"
 	"k8s.io/kops/upup/pkg/fi/nodeup/nodetasks"
 	"k8s.io/kops/upup/pkg/fi/utils"
+
+	"github.com/blang/semver"
+	"github.com/golang/glog"
 )
 
 // KubeletBuilder install kubelet
