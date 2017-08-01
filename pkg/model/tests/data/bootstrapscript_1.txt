@@ -1,22 +1,4 @@
-/*
-Copyright 2016 The Kubernetes Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
-package resources
-
-var AWSNodeUpTemplate = `#!/bin/bash
+#!/bin/bash
 # Copyright 2016 The Kubernetes Authors All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,11 +17,11 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-NODEUP_URL={{ NodeUpSource }}
-NODEUP_HASH={{ NodeUpSourceHash }}
+NODEUP_URL=NUSource
+NODEUP_HASH=NUSHash
 
-{{ S3Env }}
-{{ AWS_REGION }}
+
+
 
 function ensure-install-dir() {
   INSTALL_DIR="/var/cache/kubernetes-install"
@@ -138,15 +120,33 @@ function download-release() {
 
 echo "== nodeup node config starting =="
 ensure-install-dir
-{{ if .IncludeClusterSpec }}
+
 cat > cluster_spec.yaml << __EOF_CLUSTER_SPEC
-{{ .ClusterSpecContent }}
+cloudConfig:
+  nodeTags: something
+docker:
+  logLevel: INFO
+kubeAPIServer:
+  image: CoreOS
+kubeControllerManager:
+  cloudProvider: aws
+kubeProxy:
+  cpuRequest: 30m
+  feature-gates:
+    AdvancedAuditing: "true"
+kubeScheduler:
+  image: SomeImage
+kubelet:
+  kubeconfigPath: /etc/kubernetes/config.txt
+masterKubelet:
+  kubeconfigPath: /etc/kubernetes/config.cfg
+
 __EOF_CLUSTER_SPEC
-{{ end }}
+
 cat > kube_env.yaml << __EOF_KUBE_ENV
-{{ KubeEnv }}
+{}
+
 __EOF_KUBE_ENV
 
 download-release
 echo "== nodeup node config done =="
-`

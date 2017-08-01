@@ -138,6 +138,12 @@ type ClusterSpec struct {
 	// Additional policies to add for roles
 	AdditionalPolicies *map[string]string `json:"additionalPolicies,omitempty"`
 
+	// Include cluster spec in user data to detect component config changes
+	EnableClusterSpecInUserData bool `json:"enableClusterSpecInUserData,omitempty"`
+
+	// Hash cluster spec yaml in user data to reduce file size
+	EnableClusterSpecHash bool `json:"enableClusterSpecHash,omitempty"`
+
 	// EtcdClusters stores the configuration for each cluster
 	EtcdClusters []*EtcdClusterSpec `json:"etcdClusters,omitempty"`
 
