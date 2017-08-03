@@ -17,9 +17,13 @@ limitations under the License.
 package model
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"os"
 	"text/template"
+
+	"github.com/ghodss/yaml"
 
 	"k8s.io/kops/pkg/apis/kops"
 	"k8s.io/kops/pkg/apis/nodeup"
@@ -34,10 +38,47 @@ type BootstrapScript struct {
 	NodeUpConfigBuilder func(ig *kops.InstanceGroup) (*nodeup.Config, error)
 }
 
-func (b *BootstrapScript) ResourceNodeUp(ig *kops.InstanceGroup) (*fi.ResourceHolder, error) {
+func (b *BootstrapScript) ResourceNodeUp(ig *kops.InstanceGroup, cs *kops.ClusterSpec) (*fi.ResourceHolder, error) {
 	if ig.Spec.Role == kops.InstanceGroupRoleBastion {
 		// Bastions are just bare machines (currently), used as SSH jump-hosts
 		return nil, nil
+	}
+
+	var igSpec string
+	if cs.EnableClusterSpecInUserData {
+		spec := make(map[string]interface{})
+
+		spec["docker"] = cs.Docker
+		spec["kubeProxy"] = cs.KubeProxy
+		spec["kubelet"] = cs.Kubelet
+		spec["cloudConfig"] = cs.CloudConfig
+
+		if ig.IsMaster() {
+			spec["kubeAPIServer"] = cs.KubeAPIServer
+			spec["kubeControllerManager"] = cs.KubeControllerManager
+			spec["kubeScheduler"] = cs.KubeScheduler
+			spec["masterKubelet"] = cs.MasterKubelet
+		}
+
+		j, err := json.Marshal(spec)
+		if err != nil {
+			return nil, err
+		}
+		content, err := yaml.JSONToYAML(j)
+		if err != nil {
+			return nil, err
+		}
+
+		if cs.EnableClusterSpecHash {
+			igSpec = base64.StdEncoding.EncodeToString(content)
+		} else {
+			igSpec = string(content)
+		}
+	}
+
+	context := map[string]interface{}{
+		"IncludeClusterSpec": cs.EnableClusterSpecInUserData,
+		"ClusterSpecContent": igSpec,
 	}
 
 	functions := template.FuncMap{
@@ -82,7 +123,7 @@ func (b *BootstrapScript) ResourceNodeUp(ig *kops.InstanceGroup) (*fi.ResourceHo
 		},
 	}
 
-	templateResource, err := NewTemplateResource("nodeup", resources.AWSNodeUpTemplate, functions, nil)
+	templateResource, err := NewTemplateResource("nodeup", resources.AWSNodeUpTemplate, functions, context)
 	if err != nil {
 		return nil, err
 	}

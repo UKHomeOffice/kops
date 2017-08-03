@@ -526,6 +526,8 @@ func autoConvert_v1alpha1_ClusterSpec_To_kops_ClusterSpec(in *ClusterSpec, out *
 	out.IsolateMasters = in.IsolateMasters
 	out.UpdatePolicy = in.UpdatePolicy
 	out.AdditionalPolicies = in.AdditionalPolicies
+	out.EnableClusterSpecInUserData = in.EnableClusterSpecInUserData
+	out.EnableClusterSpecHash = in.EnableClusterSpecHash
         if in.FileAssets != nil {
 		in, out := &in.FileAssets, &out.FileAssets
 		*out = make([]*kops.FileAssetSpec, len(*in))
@@ -724,7 +726,9 @@ func autoConvert_kops_ClusterSpec_To_v1alpha1_ClusterSpec(in *kops.ClusterSpec, 
 	out.IsolateMasters = in.IsolateMasters
 	out.UpdatePolicy = in.UpdatePolicy
 	out.AdditionalPolicies = in.AdditionalPolicies
-	out.EnableEtcdTLS = in.EnableEtcdTLS
+	out.EnableClusterSpecInUserData = in.EnableClusterSpecInUserData
+	out.EnableClusterSpecHash = in.EnableClusterSpecHash
+        out.EnableEtcdTLS = in.EnableEtcdTLS
         if in.FileAssets != nil {
 		in, out := &in.FileAssets, &out.FileAssets
 		*out = make([]*kops.FileAssetSpec, len(*in))

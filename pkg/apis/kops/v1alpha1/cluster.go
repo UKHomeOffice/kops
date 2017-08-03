@@ -134,6 +134,12 @@ type ClusterSpec struct {
 	// Additional policies to add for roles
 	AdditionalPolicies *map[string]string `json:"additionalPolicies,omitempty"`
 
+	// Include cluster spec in user data to detect component config changes
+	EnableClusterSpecInUserData bool `json:"enableClusterSpecInUserData,omitempty"`
+
+	// Hash cluster spec yaml in user data to reduce file size
+	EnableClusterSpecHash bool `json:"enableClusterSpecHash,omitempty"`
+
 	// A collection of files assets for deployed cluster wide
 	FileAssets []*FileAssetSpec `json:"fileAssets,omitempty"`
 
