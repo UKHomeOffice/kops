@@ -166,12 +166,8 @@ func validateFileAssetSpec(v *kops.FileAssetSpec, fieldPath *field.Path) field.E
 	return allErrs
 }
 
-func validateHookSpec(v *kops.HookSpec, fldPath *field.Path) field.ErrorList {
+func validateHookSpec(v *kops.HookSpec, fieldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
-
-	if v.ExecContainer == nil {
-		allErrs = append(allErrs, field.Required(fldPath, "An action is required"))
-	}
 
 	if !v.Disabled && v.ExecContainer == nil && v.Manifest == "" {
 		allErrs = append(allErrs, field.Required(fieldPath, "you must set either manifest or execContainer for a hook"))

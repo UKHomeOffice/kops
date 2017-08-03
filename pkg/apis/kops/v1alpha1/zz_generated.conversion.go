@@ -528,7 +528,7 @@ func autoConvert_v1alpha1_ClusterSpec_To_kops_ClusterSpec(in *ClusterSpec, out *
 	out.AdditionalPolicies = in.AdditionalPolicies
 	out.EnableClusterSpecInUserData = in.EnableClusterSpecInUserData
 	out.EnableClusterSpecHash = in.EnableClusterSpecHash
-        if in.FileAssets != nil {
+	if in.FileAssets != nil {
 		in, out := &in.FileAssets, &out.FileAssets
 		*out = make([]*kops.FileAssetSpec, len(*in))
 		for i := range *in {
@@ -728,10 +728,9 @@ func autoConvert_kops_ClusterSpec_To_v1alpha1_ClusterSpec(in *kops.ClusterSpec, 
 	out.AdditionalPolicies = in.AdditionalPolicies
 	out.EnableClusterSpecInUserData = in.EnableClusterSpecInUserData
 	out.EnableClusterSpecHash = in.EnableClusterSpecHash
-        out.EnableEtcdTLS = in.EnableEtcdTLS
-        if in.FileAssets != nil {
+	if in.FileAssets != nil {
 		in, out := &in.FileAssets, &out.FileAssets
-		*out = make([]*kops.FileAssetSpec, len(*in))
+		*out = make([]*FileAssetSpec, len(*in))
 		for i := range *in {
 			// TODO: Inefficient conversion - can we improve it?
 			if err := s.Convert(&(*in)[i], &(*out)[i], 0); err != nil {
@@ -741,6 +740,7 @@ func autoConvert_kops_ClusterSpec_To_v1alpha1_ClusterSpec(in *kops.ClusterSpec, 
 	} else {
 		out.FileAssets = nil
 	}
+	out.EnableEtcdTLS = in.EnableEtcdTLS
 	if in.EtcdClusters != nil {
 		in, out := &in.EtcdClusters, &out.EtcdClusters
 		*out = make([]*EtcdClusterSpec, len(*in))

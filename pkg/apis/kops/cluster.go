@@ -110,7 +110,7 @@ type ClusterSpec struct {
 	UpdatePolicy *string `json:"updatePolicy,omitempty"`
 	// Additional policies to add for roles
 	AdditionalPolicies *map[string]string `json:"additionalPolicies,omitempty"`
-        // Include cluster spec in user data to detect component config changes
+	// Include cluster spec in user data to detect component config changes
 	EnableClusterSpecInUserData bool `json:"enableClusterSpecInUserData,omitempty"`
 	// Hash cluster spec yaml in user data to reduce file size
 	EnableClusterSpecHash bool `json:"enableClusterSpecHash,omitempty"`
