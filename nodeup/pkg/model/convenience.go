@@ -16,7 +16,13 @@ limitations under the License.
 
 package model
 
-import "k8s.io/kops/upup/pkg/fi"
+import (
+	"fmt"
+	"path/filepath"
+
+	"k8s.io/kops/upup/pkg/fi"
+	"k8s.io/kops/upup/pkg/fi/nodeup/nodetasks"
+)
 
 // s is a helper that builds a *string from a string value
 func s(v string) *string {
@@ -26,4 +32,56 @@ func s(v string) *string {
 // i64 is a helper that builds a *int64 from an int64 value
 func i64(v int64) *int64 {
 	return fi.Int64(v)
+}
+
+// buildCertificateRequest retrieves the certificate from a keystore
+func buildCertificateRequest(c *fi.ModelBuilderContext, b *NodeupModelContext, name, path string) error {
+	cert, err := b.KeyStore.Cert(name)
+	if err != nil {
+		return err
+	}
+
+	serialized, err := cert.AsString()
+	if err != nil {
+		return err
+	}
+
+	location := filepath.Join(b.PathSrvKubernetes(), fmt.Sprintf("%s.pem", name))
+	if path != "" {
+		location = path
+	}
+
+	c.AddTask(&nodetasks.File{
+		Path:     location,
+		Contents: fi.NewStringResource(serialized),
+		Type:     nodetasks.FileType_File,
+	})
+
+	return nil
+}
+
+// buildPrivateKeyRequest retrieves a private key from the store
+func buildPrivateKeyRequest(c *fi.ModelBuilderContext, b *NodeupModelContext, name, path string) error {
+	k, err := b.KeyStore.PrivateKey(name)
+	if err != nil {
+		return err
+	}
+
+	serialized, err := k.AsString()
+	if err != nil {
+		return err
+	}
+
+	location := filepath.Join(b.PathSrvKubernetes(), fmt.Sprintf("%s-key.pem", name))
+	if path != "" {
+		location = path
+	}
+
+	c.AddTask(&nodetasks.File{
+		Path:     location,
+		Contents: fi.NewStringResource(serialized),
+		Type:     nodetasks.FileType_File,
+	})
+
+	return nil
 }
