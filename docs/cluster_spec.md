@@ -190,14 +190,49 @@ More information about running in an existing VPC is [here](run_in_existing_vpc.
 
 ### hooks
 
-Hooks allow the execution of a container before the installation of Kubneretes on every node in a cluster.  For intance you can install nvidia drivers for using GPUs.
+Hooks allow for the execution of an action before the installation of Kubernetes on every node in a cluster.  For instance you can install nvidia drivers for using GPUs. This hooks can be in the form on docker images or manifest files (systemd units). Hooks can be place in either then cluster spec, meaning the will be globally deployed, or they can be placed into the instanceGroup specification. Note, service names on the instanceGroup which overlap with the cluster spec take precedence and ignore the cluster spec definition, i.e. if you have a unit file 'myunit.service' in cluster and then one in the instanceGroup, only the instanceGroup is applied.
 
 ```
 spec:
   # many sections removed
   hooks:
-  - execContainer:
+  - before:
+    - some_service.service
+    requires:
+    - docker.service
+      execContainer:
       image: kopeio/nvidia-bootstrap:1.6
+      # these are added as -e to the docker environment
+      environment:
+        AWS_REGION: eu-west-1
+        SOME_VAR: SOME_VALUE
+
+  # or a raw systemd unit
+  hooks:
+  - name: iptable-restore.service
+    roles:
+    - Node
+    - Master
+    before:
+    - kubelet.service
+    manifest: |
+      [Service]
+      EnvironmentFile=/etc/environment
+      # do some stuff
+
+  # or disable a systemd unit
+  hooks:
+  - name: update-engine.service
+    disable: true
+
+  # or you could wrap this into a full unit
+  hooks:
+  - name: disable-update-engine.service
+    before:
+    - update-engine.service
+    manifest: |
+      Type=oneshot
+      ExecStart=/usr/bin/systemctl stop update-engine.service
 ```
 
 Install Ceph
@@ -213,6 +248,43 @@ spec:
       - chroot /rootfs apt-get update && chroot /rootfs apt-get install -y ceph-common
       image: busybox
 ```
+
+### fileAssets
+
+FileAssets permit you to place inline file content into the cluster and instanceGroup specification, which can be consumed on the nodes
+
+```yaml
+spec:
+  fileAssets:
+  - name: iptable-restore
+    path: /var/lib/iptables/rules-save
+    mode: 0440
+    roles: [Master,Node,Bastion] # a list of roles to apply the asset to, zero defaults to all
+    content: |
+      some file content
+
+  # you can also template the file, the Cluster, InstanceGroup is passed to the template context,
+  - name: iptable-restore
+    path: /var/lib/iptables/rules-save
+    templated: true
+    mode: 0440
+    content: |
+      some file content
+      *filter
+      :INPUT ACCEPT [0:0]
+      -A INPUT -p tcp -m state -s {{ .Cluster.NonMasqueradeCIDR }} --dport 22 --state NEW -j REJECT
+      :FORWARD ACCEPT [0:0]
+      -A FORWARD -i docker0 -p tcp -m tcp -d 169.254.169.254/32 --dport 80 -m state --state NEW -j REJECT
+      -A FORWARD -i docker0 -p tcp -m tcp --dport 2379 -m state --state NEW -j REJECT
+      -A FORWARD -i docker0 -p tcp -m tcp -d {{ .Cluster.NetworkCIDR }} --dport 22 -m state --state NEW -j REJECT
+      -A FORWARD -i docker0 -p tcp -m tcp -d {{ .Cluster.NetworkCIDR }} --dport 10250 -m state --state NEW -j REJECT
+      {{ if .Master "true" }}
+      # add something for the master nodes etc
+      {{- end }}
+      :OUTPUT ACCEPT [0:0]
+      COMMIT
+```
+
 
 ### cloudConfig
 

@@ -113,6 +113,8 @@ type ClusterSpec struct {
 	UpdatePolicy *string `json:"updatePolicy,omitempty"`
 	// Additional policies to add for roles
 	AdditionalPolicies *map[string]string `json:"additionalPolicies,omitempty"`
+	// A collection of files assets for deployed cluster wide
+	FileAssets []*FileAssetSpec `json:"fileAssets,omitempty"`
 	// EtcdClusters stores the configuration for each cluster
 	EtcdClusters []*EtcdClusterSpec `json:"etcdClusters,omitempty"`
 	// Component configurations
@@ -145,20 +147,55 @@ type ClusterSpec struct {
 	Assets *Assets `json:"assets,omitempty"`
 }
 
+// FileAssetSpec defines the structure for a file asset
+type FileAssetSpec struct {
+	// Name is a shortened reference to the asset
+	Name string `json:"name,omitempty"`
+	// Path is the location this file should reside
+	Path string `json:"path,omitempty"`
+	// Mode is unix filemode for the file - defaults to 0400
+	Mode string `json:"mode,omitempty"`
+	// Roles is a list of roles the file asset should be applied, defaults to all
+	Roles []InstanceGroupRole `json:"roles,omitempty"`
+	// Content is the contents of the file
+	Content string `json:"content,omitempty"`
+	// Templated indicates the content is templated
+	Templated bool `json:"templated,omitempty"`
+	// IsBase64 indicates the contents is base64 encoded
+	IsBase64 bool `json:"isBase64,omitempty"`
+}
+
 type Assets struct {
 	ContainerRegistry *string `json:"containerRegistry,omitempty"`
 	FileRepository    *string `json:"fileRepository,omitempty"`
 }
 
+// HookSpec is a definition hook
 type HookSpec struct {
+	// Name is an optional name for the hook, otherwise the name is kops-hook-<index>
+	Name string `json:"name,omitempty"`
+	// Disabled indicates if you want the unit switched off
+	Disabled bool `json:"disabled,omitempty"`
+	// Roles is an optional list of roles the hook should be rolled out to, defaults to all
+	Roles []InstanceGroupRole `json:"roles,omitempty"`
+	// Requires is a series of systemd units the action requires
+	Requires []string `json:"requires,omitempty"`
+	// Before is a series of systemd units which this hook must run before
+	Before []string `json:"before,omitempty"`
+	// ExecContainer is the image itself
 	ExecContainer *ExecContainerAction `json:"execContainer,omitempty"`
+	// Manifest is a raw systemd unit file
+	Manifest string `json:"manifest,omitempty"`
 }
 
+// ExecContainerAction defines an hood action
 type ExecContainerAction struct {
-	// Docker image name.
+	// Image is the docker image
 	Image string `json:"image,omitempty" `
-
+	// Command is the command supplied to the above image
 	Command []string `json:"command,omitempty"`
+	// Environment is a map of environment variables added to the hook
+	Environment map[string]string `json:"environment,omitempty"`
 }
 
 type AuthenticationSpec struct {
@@ -224,24 +261,16 @@ type KubeDNSConfig struct {
 	ServerIP string `json:"serverIP,omitempty"`
 }
 
-// EtcdStorageType defined the etcd storage backend
-type EtcdStorageType string
-
-const (
-	// EtcdStorageTypeV2 is the old v2 storage
-	EtcdStorageTypeV2 EtcdStorageType = "etcd2"
-	// EtcdStorageTypeV3 is the new v3 storage
-	EtcdStorageTypeV3 EtcdStorageType = "etcd3"
-)
-
 // EtcdClusterSpec is the etcd cluster specification
 type EtcdClusterSpec struct {
 	// Name is the name of the etcd cluster (main, events etc)
 	Name string `json:"name,omitempty"`
-	// EnableEtcdTLS indicates the etcd service should use TLS between peers and clients
-	EnableEtcdTLS bool `json:"enableEtcdTLS,omitempty"`
 	// Members stores the configurations for each member of the cluster (including the data volume)
 	Members []*EtcdMemberSpec `json:"etcdMembers,omitempty"`
+	// EnableEtcdTLS indicates the etcd service should use TLS between peers and clients
+	EnableEtcdTLS bool `json:"enableEtcdTLS,omitempty"`
+	// Version is the version of etcd to run i.e. 2.1.2, 3.0.17 etcd
+	Version string `json:"version,omitempty"`
 }
 
 // EtcdMemberSpec is a specification for a etcd member
