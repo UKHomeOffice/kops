@@ -17,19 +17,21 @@ limitations under the License.
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	"k8s.io/kops/cmd/kops/util"
-	"k8s.io/kops/pkg/util/templater"
-	"k8s.io/kops/upup/pkg/fi/utils"
-
+	"github.com/ghodss/yaml"
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	"k8s.io/kubernetes/pkg/kubectl/util/i18n"
+
+	"k8s.io/kops/cmd/kops/util"
+	"k8s.io/kops/pkg/util/templater"
+	"k8s.io/kops/upup/pkg/fi/utils"
 )
 
 var (
@@ -55,6 +57,7 @@ type toolboxTemplateOption struct {
 	clusterName   string
 	configPath    []string
 	failOnMissing bool
+	formatYAML    bool
 	outputPath    string
 	snippetsPath  []string
 	templatePath  []string
@@ -86,6 +89,7 @@ func NewCmdToolboxTemplate(f *util.Factory, out io.Writer) *cobra.Command {
 	cmd.Flags().StringSliceVar(&options.snippetsPath, "snippets", options.snippetsPath, "Path to directory containing snippets used for templating")
 	cmd.Flags().StringVar(&options.outputPath, "output", options.outputPath, "Path to output file, otherwise defaults to stdout")
 	cmd.Flags().BoolVar(&options.failOnMissing, "fail-on-missing", true, "Fail on referencing unset variables in templates")
+	cmd.Flags().BoolVar(&options.formatYAML, "format-yaml", false, "Attempt to format the generated yaml content before output")
 
 	return cmd
 }
@@ -144,14 +148,7 @@ func runToolBoxTemplate(f *util.Factory, out io.Writer, options *toolboxTemplate
 	}
 
 	// @step: get the output io.Writer
-	writer := out
-	if options.outputPath != "" {
-		w, err := os.OpenFile(utils.ExpandPath(options.outputPath), os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0660)
-		if err != nil {
-			return fmt.Errorf("unable to open file: %s, error: %v", options.outputPath, err)
-		}
-		writer = w
-	}
+	writer := new(bytes.Buffer)
 
 	// @step: render each of the template and write to location
 	r := templater.NewTemplater()
@@ -166,13 +163,38 @@ func runToolBoxTemplate(f *util.Factory, out io.Writer, options *toolboxTemplate
 		if err != nil {
 			return fmt.Errorf("unable to render template: %s, error: %s", x, err)
 		}
-
+		if len(rendered) <= 0 {
+			continue
+		}
 		io.WriteString(writer, rendered)
 
 		// @check if we should need to add document separator
 		if i < size {
 			io.WriteString(writer, "---\n")
 		}
+	}
+	content := writer.Bytes()
+
+	if options.formatYAML {
+		var data interface{}
+		err := yaml.Unmarshal(content, &data)
+		if err != nil {
+			return fmt.Errorf("encountered errors generating templates: %s", err)
+		}
+		if content, err = yaml.Marshal(data); err != nil {
+			return fmt.Errorf("encountered error formating the template: %s", err)
+		}
+	}
+
+	if options.outputPath != "" {
+		w, err := os.OpenFile(utils.ExpandPath(options.outputPath), os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0660)
+		if err != nil {
+			return fmt.Errorf("unable to open file: %s, error: %v", options.outputPath, err)
+		}
+		defer w.Close()
+		w.Write(content)
+	} else {
+		out.Write(content)
 	}
 
 	return nil
